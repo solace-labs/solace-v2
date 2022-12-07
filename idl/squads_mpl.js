@@ -1,4 +1,7 @@
-{
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.IDL = void 0;
+exports.IDL = {
     "version": "0.1.1",
     "name": "squads_mpl",
     "instructions": [
@@ -446,7 +449,7 @@
     ],
     "accounts": [
         {
-            "name": "Ms",
+            "name": "ms",
             "type": {
                 "kind": "struct",
                 "fields": [
@@ -488,7 +491,7 @@
             }
         },
         {
-            "name": "MsTransaction",
+            "name": "msTransaction",
             "type": {
                 "kind": "struct",
                 "fields": [
@@ -552,7 +555,7 @@
             }
         },
         {
-            "name": "MsInstruction",
+            "name": "msInstruction",
             "type": {
                 "kind": "struct",
                 "fields": [
@@ -713,8 +716,5 @@
             "code": 6012,
             "name": "PartialExecution"
         }
-    ],
-    "metadata": {
-        "address": "84Ue9gKQUsStFJQCNQpsqvbceo7fKYSSCCMXxMZ5PkiW"
-    }
-}
+    ]
+};

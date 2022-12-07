@@ -1,6 +1,6 @@
 import { Connection, PublicKey, Commitment, ConnectionConfig, TransactionInstruction, Signer } from "@solana/web3.js";
 import { Wallet } from "@project-serum/anchor/dist/cjs/provider";
-import { InstructionAccount, ManagedProgramAccount, MultisigAccount, ProgramManagerAccount, ProgramUpgradeAccount, TransactionAccount } from "./types";
+import { InstructionAccount, MultisigAccount, TransactionAccount } from "./types";
 import { TransactionBuilder } from "./tx_builder";
 declare class Squads {
     readonly connection: Connection;
@@ -9,7 +9,6 @@ declare class Squads {
     readonly multisigProgramId: PublicKey;
     private readonly multisig;
     readonly programManagerProgramId: PublicKey;
-    private readonly programManager;
     constructor({ connection, wallet, multisigProgramId, programManagerProgramId, }: {
         connection: Connection;
         wallet: Wallet;
@@ -44,16 +43,8 @@ declare class Squads {
     getTransactions(addresses: PublicKey[]): Promise<(TransactionAccount | null)[]>;
     getInstruction(address: PublicKey): Promise<InstructionAccount>;
     getInstructions(addresses: PublicKey[]): Promise<(InstructionAccount | null)[]>;
-    getProgramManager(address: PublicKey): Promise<ProgramManagerAccount>;
-    getProgramManagers(addresses: PublicKey[]): Promise<(ProgramManagerAccount | null)[]>;
-    getManagedProgram(address: PublicKey): Promise<ManagedProgramAccount>;
-    getManagedPrograms(addresses: PublicKey[]): Promise<(ManagedProgramAccount | null)[]>;
-    getProgramUpgrade(address: PublicKey): Promise<ProgramUpgradeAccount>;
-    getProgramUpgrades(addresses: PublicKey[]): Promise<(ProgramUpgradeAccount | null)[]>;
     getNextTransactionIndex(multisigPDA: PublicKey): Promise<number>;
     getNextInstructionIndex(transactionPDA: PublicKey): Promise<number>;
-    getNextProgramIndex(programManagerPDA: PublicKey): Promise<number>;
-    getNextUpgradeIndex(managedProgramPDA: PublicKey): Promise<number>;
     getAuthorityPDA(multisigPDA: PublicKey, authorityIndex: number): PublicKey;
     private _createMultisig;
     createMultisig(threshold: number, createKey: PublicKey, initialMembers: PublicKey[]): Promise<MultisigAccount>;
@@ -82,9 +73,6 @@ declare class Squads {
     private _executeInstruction;
     executeInstruction(transactionPDA: PublicKey, instructionPDA: PublicKey): Promise<InstructionAccount>;
     buildExecuteInstruction(transactionPDA: PublicKey, instructionPDA: PublicKey): Promise<TransactionInstruction>;
-    createProgramManager(multisigPDA: PublicKey): Promise<ProgramManagerAccount>;
-    createManagedProgram(multisigPDA: PublicKey, programAddress: PublicKey, name: string): Promise<ManagedProgramAccount>;
-    createProgramUpgrade(multisigPDA: PublicKey, managedProgramPDA: PublicKey, bufferAddress: PublicKey, spillAddress: PublicKey, authorityAddress: PublicKey, upgradeName: string): Promise<ProgramUpgradeAccount>;
 }
 export default Squads;
 export * from "./constants";

@@ -12,16 +12,11 @@ import {
 } from "./constants";
 import squadsMplJSON from "../../target/idl/squads_mpl.json";
 import { SquadsMpl } from "../../target/types/squads_mpl";
-import programManagerJSON from "../../target/idl/program_manager.json";
-import { ProgramManager } from "../../target/types/program_manager";
 import { Wallet } from "@project-serum/anchor/dist/cjs/provider";
 import { AnchorProvider, Program } from "@project-serum/anchor";
 import {
   InstructionAccount,
-  ManagedProgramAccount,
   MultisigAccount,
-  ProgramManagerAccount,
-  ProgramUpgradeAccount,
   SquadsMethods,
   TransactionAccount,
 } from "./types";
@@ -45,7 +40,6 @@ class Squads {
   readonly multisigProgramId: PublicKey;
   private readonly multisig: Program<SquadsMpl>;
   readonly programManagerProgramId: PublicKey;
-  private readonly programManager: Program<ProgramManager>;
 
   constructor({
     connection,
@@ -61,23 +55,19 @@ class Squads {
     this.connection = connection;
     this.wallet = wallet;
     this.multisigProgramId = multisigProgramId ?? DEFAULT_MULTISIG_PROGRAM_ID;
-    this.provider = new AnchorProvider(
-      this.connection,
-      this.wallet,
-      {...AnchorProvider.defaultOptions(), commitment: "confirmed", preflightCommitment: "confirmed"}
-    );
+    this.provider = new AnchorProvider(this.connection, this.wallet, {
+      ...AnchorProvider.defaultOptions(),
+      commitment: "confirmed",
+      preflightCommitment: "confirmed",
+    });
     this.multisig = new Program<SquadsMpl>(
+      // @ts-ignore
       squadsMplJSON as SquadsMpl,
       this.multisigProgramId,
       this.provider
     );
     this.programManagerProgramId =
       programManagerProgramId ?? DEFAULT_PROGRAM_MANAGER_PROGRAM_ID;
-    this.programManager = new Program<ProgramManager>(
-      programManagerJSON as ProgramManager,
-      this.programManagerProgramId,
-      this.provider
-    );
   }
 
   static endpoint(
@@ -160,7 +150,6 @@ class Squads {
     const multisig = await this.getMultisig(multisigPDA);
     return new TransactionBuilder(
       this.multisig.methods,
-      this.programManager.methods,
       this.provider,
       multisig,
       authorityIndex,
@@ -168,13 +157,19 @@ class Squads {
     );
   }
   async getMultisig(address: PublicKey): Promise<MultisigAccount> {
-    const accountData = await this.multisig.account.ms.fetch(address, "processed");
+    const accountData = await this.multisig.account.ms.fetch(
+      address,
+      "processed"
+    );
     return { ...accountData, publicKey: address } as MultisigAccount;
   }
   async getMultisigs(
     addresses: PublicKey[]
   ): Promise<(MultisigAccount | null)[]> {
-    const accountData = await this.multisig.account.ms.fetchMultiple(addresses, "processed");
+    const accountData = await this.multisig.account.ms.fetchMultiple(
+      addresses,
+      "processed"
+    );
     return this._addPublicKeys(
       accountData,
       addresses
@@ -219,58 +214,6 @@ class Squads {
     ) as (InstructionAccount | null)[];
   }
 
-  async getProgramManager(address: PublicKey): Promise<ProgramManagerAccount> {
-    const accountData = await this.programManager.account.programManager.fetch(
-      address,
-      "processed"
-    );
-    return { ...accountData, publicKey: address };
-  }
-  async getProgramManagers(
-    addresses: PublicKey[]
-  ): Promise<(ProgramManagerAccount | null)[]> {
-    const accountData =
-      await this.programManager.account.programManager.fetchMultiple(addresses, "processed");
-    return this._addPublicKeys(
-      accountData,
-      addresses
-    ) as (ProgramManagerAccount | null)[];
-  }
-  async getManagedProgram(address: PublicKey): Promise<ManagedProgramAccount> {
-    const accountData = await this.programManager.account.managedProgram.fetch(
-      address,
-      "processed"
-    );
-    return { ...accountData, publicKey: address };
-  }
-  async getManagedPrograms(
-    addresses: PublicKey[]
-  ): Promise<(ManagedProgramAccount | null)[]> {
-    const accountData =
-      await this.programManager.account.managedProgram.fetchMultiple(addresses, "processed");
-    return this._addPublicKeys(
-      accountData,
-      addresses
-    ) as (ManagedProgramAccount | null)[];
-  }
-  async getProgramUpgrade(address: PublicKey): Promise<ProgramUpgradeAccount> {
-    const accountData = await this.programManager.account.programUpgrade.fetch(
-      address,
-      "processed"
-    );
-    return { ...accountData, publicKey: address };
-  }
-  async getProgramUpgrades(
-    addresses: PublicKey[]
-  ): Promise<(ProgramUpgradeAccount | null)[]> {
-    const accountData =
-      await this.programManager.account.programUpgrade.fetchMultiple(addresses, "processed");
-    return this._addPublicKeys(
-      accountData,
-      addresses
-    ) as (ProgramUpgradeAccount | null)[];
-  }
-
   async getNextTransactionIndex(multisigPDA: PublicKey): Promise<number> {
     const multisig = await this.getMultisig(multisigPDA);
     return multisig.transactionIndex + 1;
@@ -279,16 +222,6 @@ class Squads {
   async getNextInstructionIndex(transactionPDA: PublicKey): Promise<number> {
     const transaction = await this.getTransaction(transactionPDA);
     return transaction.instructionIndex + 1;
-  }
-
-  async getNextProgramIndex(programManagerPDA: PublicKey): Promise<number> {
-    const programManager = await this.getProgramManager(programManagerPDA);
-    return programManager.managedProgramIndex + 1;
-  }
-
-  async getNextUpgradeIndex(managedProgramPDA: PublicKey): Promise<number> {
-    const managedProgram = await this.getManagedProgram(managedProgramPDA);
-    return managedProgram.upgradeIndex + 1;
   }
 
   getAuthorityPDA(multisigPDA: PublicKey, authorityIndex: number): PublicKey {
@@ -722,77 +655,6 @@ class Squads {
       instructionPDA
     );
     return await methods.instruction();
-  }
-
-  async createProgramManager(
-    multisigPDA: PublicKey
-  ): Promise<ProgramManagerAccount> {
-    const [programManagerPDA] = getProgramManagerPDA(
-      multisigPDA,
-      this.programManagerProgramId
-    );
-    await this.programManager.methods
-      .createProgramManager()
-      .accounts({ multisig: multisigPDA, programManager: programManagerPDA })
-      .rpc();
-    return await this.getProgramManager(programManagerPDA);
-  }
-  async createManagedProgram(
-    multisigPDA: PublicKey,
-    programAddress: PublicKey,
-    name: string
-  ): Promise<ManagedProgramAccount> {
-    const [programManagerPDA] = getProgramManagerPDA(
-      multisigPDA,
-      this.programManagerProgramId
-    );
-    const [managedProgramPDA] = getManagedProgramPDA(
-      programManagerPDA,
-      new BN(await this.getNextProgramIndex(programManagerPDA), 10),
-      this.programManagerProgramId
-    );
-    await this.programManager.methods
-      .createManagedProgram(programAddress, name)
-      .accounts({
-        multisig: multisigPDA,
-        programManager: programManagerPDA,
-        managedProgram: managedProgramPDA,
-      })
-      .rpc();
-    return await this.getManagedProgram(managedProgramPDA);
-  }
-  async createProgramUpgrade(
-    multisigPDA: PublicKey,
-    managedProgramPDA: PublicKey,
-    bufferAddress: PublicKey,
-    spillAddress: PublicKey,
-    authorityAddress: PublicKey,
-    upgradeName: string
-  ): Promise<ProgramUpgradeAccount> {
-    const [programManagerPDA] = getProgramManagerPDA(
-      multisigPDA,
-      this.programManagerProgramId
-    );
-    const [programUpgradePDA] = getProgramUpgradePDA(
-      managedProgramPDA,
-      new BN(await this.getNextUpgradeIndex(managedProgramPDA), 10),
-      this.programManagerProgramId
-    );
-    await this.programManager.methods
-      .createProgramUpgrade(
-        bufferAddress,
-        spillAddress,
-        authorityAddress,
-        upgradeName
-      )
-      .accounts({
-        multisig: multisigPDA,
-        programManager: programManagerPDA,
-        managedProgram: managedProgramPDA,
-        programUpgrade: programUpgradePDA,
-      })
-      .rpc();
-    return await this.getProgramUpgrade(programUpgradePDA);
   }
 }
 

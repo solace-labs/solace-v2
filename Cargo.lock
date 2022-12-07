@@ -776,14 +776,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "mesh"
-version = "0.0.1"
-dependencies = [
- "anchor-lang",
- "hex",
-]
-
-[[package]]
 name = "num-derive"
 version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -883,14 +875,6 @@ dependencies = [
  "syn",
  "version_check",
  "yansi",
-]
-
-[[package]]
-name = "program-manager"
-version = "0.1.0"
-dependencies = [
- "anchor-lang",
- "squads-mpl",
 ]
 
 [[package]]
@@ -1007,14 +991,6 @@ name = "regex-syntax"
 version = "0.6.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a3f87b73ce11b1619a3c6332f45341e0047173771e8b8b73f87bfeefb7b56244"
-
-[[package]]
-name = "roles"
-version = "0.1.0"
-dependencies = [
- "anchor-lang",
- "squads-mpl",
-]
 
 [[package]]
 name = "rustc_version"
@@ -1287,14 +1263,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8d82e1a7758622a465f8cee077614c73484dac5b836c02ff6a40d5d1010324d7"
 dependencies = [
  "serde",
-]
-
-[[package]]
-name = "txmeta"
-version = "0.1.0"
-dependencies = [
- "anchor-lang",
- "squads-mpl",
 ]
 
 [[package]]

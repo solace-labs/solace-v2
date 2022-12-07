@@ -52,9 +52,7 @@ class Squads {
         this.wallet = wallet;
         this.multisigProgramId = multisigProgramId !== null && multisigProgramId !== void 0 ? multisigProgramId : constants_1.DEFAULT_MULTISIG_PROGRAM_ID;
         this.provider = new anchor_1.AnchorProvider(this.connection, this.wallet, Object.assign(Object.assign({}, anchor_1.AnchorProvider.defaultOptions()), { commitment: "confirmed", preflightCommitment: "confirmed" }));
-        this.multisig = new anchor_1.Program(
-        // @ts-ignore
-        squads_mpl_json_1.default, this.multisigProgramId, this.provider);
+        this.multisig = new anchor_1.Program(squads_mpl_json_1.default, this.multisigProgramId, this.provider);
         this.programManagerProgramId =
             programManagerProgramId !== null && programManagerProgramId !== void 0 ? programManagerProgramId : constants_1.DEFAULT_PROGRAM_MANAGER_PROGRAM_ID;
     }

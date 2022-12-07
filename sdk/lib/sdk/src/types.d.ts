@@ -1,5 +1,4 @@
 import { SquadsMpl } from "../../target/types/squads_mpl";
-import { ProgramManager } from "../../target/types/program_manager";
 import { Idl, IdlTypes, MethodsNamespace } from "@project-serum/anchor";
 import { IdlTypeDef } from "@project-serum/anchor/dist/cjs/idl";
 import { AllInstructions, TypeDef } from "@project-serum/anchor/dist/cjs/program/namespace/types";
@@ -16,10 +15,6 @@ declare type AccountDefDictionary<T extends Idl> = TypeDefDictionary<NonNullable
 export declare type MultisigAccount = AccountDefDictionary<SquadsMpl>["ms"];
 export declare type TransactionAccount = AccountDefDictionary<SquadsMpl>["msTransaction"];
 export declare type InstructionAccount = AccountDefDictionary<SquadsMpl>["msInstruction"];
-export declare type ProgramManagerAccount = AccountDefDictionary<ProgramManager>["programManager"];
-export declare type ManagedProgramAccount = AccountDefDictionary<ProgramManager>["managedProgram"];
-export declare type ProgramUpgradeAccount = AccountDefDictionary<ProgramManager>["programUpgrade"];
 export declare type SquadsMethods = MethodsBuilder<SquadsMpl, AllInstructions<SquadsMpl>>;
 export declare type SquadsMethodsNamespace = MethodsNamespace<SquadsMpl, AllInstructions<SquadsMpl>>;
-export declare type ProgramManagerMethodsNamespace = MethodsNamespace<ProgramManager, AllInstructions<ProgramManager>>;
 export {};

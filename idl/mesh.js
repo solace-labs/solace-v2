@@ -1,6 +1,9 @@
-{
-    "version": "0.1.1",
-    "name": "squads_mpl",
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.IDL = void 0;
+exports.IDL = {
+    "version": "0.0.1",
+    "name": "mesh",
     "instructions": [
         {
             "name": "create",
@@ -22,6 +25,10 @@
                 }
             ],
             "args": [
+                {
+                    "name": "externalAuthority",
+                    "type": "publicKey"
+                },
                 {
                     "name": "threshold",
                     "type": "u16"
@@ -47,12 +54,7 @@
                     "isSigner": false
                 },
                 {
-                    "name": "multisigAuth",
-                    "isMut": true,
-                    "isSigner": true
-                },
-                {
-                    "name": "member",
+                    "name": "externalAuthority",
                     "isMut": true,
                     "isSigner": true
                 },
@@ -83,7 +85,7 @@
                     "isSigner": false
                 },
                 {
-                    "name": "multisigAuth",
+                    "name": "externalAuthority",
                     "isMut": true,
                     "isSigner": true
                 }
@@ -104,7 +106,7 @@
                     "isSigner": false
                 },
                 {
-                    "name": "multisigAuth",
+                    "name": "externalAuthority",
                     "isMut": true,
                     "isSigner": true
                 }
@@ -129,12 +131,7 @@
                     "isSigner": false
                 },
                 {
-                    "name": "multisigAuth",
-                    "isMut": true,
-                    "isSigner": true
-                },
-                {
-                    "name": "member",
+                    "name": "externalAuthority",
                     "isMut": true,
                     "isSigner": true
                 },
@@ -169,7 +166,7 @@
                     "isSigner": false
                 },
                 {
-                    "name": "multisigAuth",
+                    "name": "externalAuthority",
                     "isMut": true,
                     "isSigner": true
                 }
@@ -190,7 +187,7 @@
                     "isSigner": false
                 },
                 {
-                    "name": "multisigAuth",
+                    "name": "externalAuthority",
                     "isMut": true,
                     "isSigner": true
                 }
@@ -206,7 +203,7 @@
                     "isSigner": false
                 },
                 {
-                    "name": "multisigAuth",
+                    "name": "externalAuthority",
                     "isMut": true,
                     "isSigner": true
                 }
@@ -309,6 +306,24 @@
                     "name": "incomingInstruction",
                     "type": {
                         "defined": "IncomingInstruction"
+                    }
+                },
+                {
+                    "name": "authorityIndex",
+                    "type": {
+                        "option": "u32"
+                    }
+                },
+                {
+                    "name": "authorityBump",
+                    "type": {
+                        "option": "u8"
+                    }
+                },
+                {
+                    "name": "authorityType",
+                    "type": {
+                        "defined": "MsAuthorityType"
                     }
                 }
             ]
@@ -442,11 +457,32 @@
                 }
             ],
             "args": []
+        },
+        {
+            "name": "changeExternalAuthority",
+            "accounts": [
+                {
+                    "name": "multisig",
+                    "isMut": true,
+                    "isSigner": false
+                },
+                {
+                    "name": "externalAuthority",
+                    "isMut": true,
+                    "isSigner": true
+                }
+            ],
+            "args": [
+                {
+                    "name": "newAuthority",
+                    "type": "publicKey"
+                }
+            ]
         }
     ],
     "accounts": [
         {
-            "name": "Ms",
+            "name": "ms",
             "type": {
                 "kind": "struct",
                 "fields": [
@@ -483,12 +519,16 @@
                         "type": {
                             "vec": "publicKey"
                         }
+                    },
+                    {
+                        "name": "externalAuthority",
+                        "type": "publicKey"
                     }
                 ]
             }
         },
         {
-            "name": "MsTransaction",
+            "name": "msTransaction",
             "type": {
                 "kind": "struct",
                 "fields": [
@@ -552,7 +592,7 @@
             }
         },
         {
-            "name": "MsInstruction",
+            "name": "msInstruction",
             "type": {
                 "kind": "struct",
                 "fields": [
@@ -579,6 +619,24 @@
                     {
                         "name": "bump",
                         "type": "u8"
+                    },
+                    {
+                        "name": "authorityType",
+                        "type": {
+                            "defined": "MsAuthorityType"
+                        }
+                    },
+                    {
+                        "name": "authorityIndex",
+                        "type": {
+                            "option": "u32"
+                        }
+                    },
+                    {
+                        "name": "authorityBump",
+                        "type": {
+                            "option": "u8"
+                        }
                     },
                     {
                         "name": "executed",
@@ -658,6 +716,20 @@
                     }
                 ]
             }
+        },
+        {
+            "name": "MsAuthorityType",
+            "type": {
+                "kind": "enum",
+                "variants": [
+                    {
+                        "name": "Default"
+                    },
+                    {
+                        "name": "Custom"
+                    }
+                ]
+            }
         }
     ],
     "errors": [
@@ -683,38 +755,43 @@
         },
         {
             "code": 6005,
-            "name": "TransactionAlreadyExecuted"
+            "name": "InvalidAuthorityType"
         },
         {
             "code": 6006,
-            "name": "CannotRemoveSoloMember"
+            "name": "TransactionAlreadyExecuted"
         },
         {
             "code": 6007,
-            "name": "InvalidThreshold"
+            "name": "CannotRemoveSoloMember"
         },
         {
             "code": 6008,
-            "name": "DeprecatedTransaction"
+            "name": "InvalidThreshold"
         },
         {
             "code": 6009,
-            "name": "InstructionFailed"
+            "name": "DeprecatedTransaction"
         },
         {
             "code": 6010,
-            "name": "MaxMembersReached"
+            "name": "InstructionFailed"
         },
         {
             "code": 6011,
-            "name": "EmptyMembers"
+            "name": "MaxMembersReached"
         },
         {
             "code": 6012,
+            "name": "EmptyMembers"
+        },
+        {
+            "code": 6013,
             "name": "PartialExecution"
+        },
+        {
+            "code": 6014,
+            "name": "InvalidExternalAuthority"
         }
-    ],
-    "metadata": {
-        "address": "84Ue9gKQUsStFJQCNQpsqvbceo7fKYSSCCMXxMZ5PkiW"
-    }
-}
+    ]
+};

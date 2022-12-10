@@ -104,7 +104,7 @@ describe("Programs", function () {
 
   describe("SMPL, Program Manager, & Roles", function () {
     let program;
-    let squads;
+    let squads: Squads;
     let creator;
     let randomCreateKey;
     let msPDA;
@@ -145,7 +145,8 @@ describe("Programs", function () {
         await squads.createMultisig(
           threshold,
           randomCreateKey,
-          memberList.map((m) => m.publicKey)
+          memberList.map((m) => m.publicKey),
+          "NAME"
         );
         const vaultPDA = squads.getAuthorityPDA(msPDA, 1);
 

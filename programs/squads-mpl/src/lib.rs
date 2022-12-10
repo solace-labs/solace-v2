@@ -19,7 +19,7 @@ security_txt! {
     auditors: "OtterSec"
 }
 
-declare_id!("4fFakSNFtLx9zuoSbSSsTLmjeziBGvbfgfyEmdAqdJnk");
+declare_id!("ERrgNFYjLU7VB7oNUenPByozBZKMXPNhkPURwuvXW8rC");
 
 #[program]
 pub mod squads_mpl {
@@ -36,43 +36,19 @@ pub mod squads_mpl {
     // instruction to create a multisig
     pub fn create(
         ctx: Context<Create>,
-        threshold: u16,
+        owner: Pubkey,
         create_key: Pubkey,
-        members: Vec<Pubkey>,
+        name: String,
     ) -> Result<()> {
-        // sort the members and remove duplicates
-        let mut members = members;
-        members.sort();
-        members.dedup();
-
-        // check we don't exceed u16
-        let total_members = members.len();
-        if total_members < 1 {
-            return err!(MsError::EmptyMembers);
-        }
-
-        // make sure we don't exceed u16 on first call
-        if total_members > usize::from(u16::MAX) {
-            return err!(MsError::MaxMembersReached);
-        }
-
-        // make sure threshold is valid
-        if usize::from(threshold) < 1 || usize::from(threshold) > total_members {
-            return err!(MsError::InvalidThreshold);
-        }
-
-        ctx.accounts.multisig.init(
-            threshold,
-            create_key,
-            members,
-            *ctx.bumps.get("multisig").unwrap(),
-        )
+        ctx.accounts
+            .multisig
+            .init(owner, create_key, *ctx.bumps.get("multisig").unwrap())
     }
 
     // instruction to add a member/key to the multisig and reallocate space if neccessary
     pub fn add_member(ctx: Context<MsAuthRealloc>, new_member: Pubkey) -> Result<()> {
         // if max is already reached, we can't have more members
-        if ctx.accounts.multisig.keys.len() >= usize::from(u16::MAX) {
+        if ctx.accounts.multisig.guardian_keys.len() >= usize::from(u16::MAX) {
             return err!(MsError::MaxMembersReached);
         }
 
@@ -82,8 +58,8 @@ pub mod squads_mpl {
             return err!(MsError::InvalidInstructionAccount);
         }
         let curr_data_size = multisig_account_info.data.borrow().len();
-        let spots_left =
-            ((curr_data_size - Ms::SIZE_WITHOUT_MEMBERS) / 32) - ctx.accounts.multisig.keys.len();
+        let spots_left = ((curr_data_size - Ms::SIZE_WITHOUT_MEMBERS) / 32)
+            - ctx.accounts.multisig.guardian_keys.len();
 
         // if not enough, add (10 * 32) to size - bump it up by 10 accounts
         if spots_left < 1 {
@@ -111,7 +87,7 @@ pub mod squads_mpl {
             }
         }
         ctx.accounts.multisig.reload()?;
-        ctx.accounts.multisig.add_member(new_member)?;
+        ctx.accounts.multisig.add_guardian(new_member)?;
         let new_index = ctx.accounts.multisig.transaction_index;
         ctx.accounts.multisig.set_change_index(new_index)
     }
@@ -119,14 +95,21 @@ pub mod squads_mpl {
     // instruction to remove a member/key from the multisig
     pub fn remove_member(ctx: Context<MsAuth>, old_member: Pubkey) -> Result<()> {
         // if there is only one key in this multisig, reject the removal
-        if ctx.accounts.multisig.keys.len() == 1 {
+        if ctx.accounts.multisig.guardian_keys.len() == 1 {
             return err!(MsError::CannotRemoveSoloMember);
         }
-        ctx.accounts.multisig.remove_member(old_member)?;
+        ctx.accounts.multisig.remove_guardian(old_member)?;
 
         // if the number of keys is now less than the threshold, adjust it
-        if ctx.accounts.multisig.keys.len() < usize::from(ctx.accounts.multisig.threshold) {
-            let new_threshold: u16 = ctx.accounts.multisig.keys.len().try_into().unwrap();
+        if ctx.accounts.multisig.guardian_keys.len() < usize::from(ctx.accounts.multisig.threshold)
+        {
+            let new_threshold: u16 = ctx
+                .accounts
+                .multisig
+                .guardian_keys
+                .len()
+                .try_into()
+                .unwrap();
             ctx.accounts.multisig.change_threshold(new_threshold)?;
         }
         let new_index = ctx.accounts.multisig.transaction_index;
@@ -169,8 +152,14 @@ pub mod squads_mpl {
         )?;
 
         // check that the threshold value is valid
-        if ctx.accounts.multisig.keys.len() < usize::from(new_threshold) {
-            let new_threshold: u16 = ctx.accounts.multisig.keys.len().try_into().unwrap();
+        if ctx.accounts.multisig.guardian_keys.len() < usize::from(new_threshold) {
+            let new_threshold: u16 = ctx
+                .accounts
+                .multisig
+                .guardian_keys
+                .len()
+                .try_into()
+                .unwrap();
             ctx.accounts.multisig.change_threshold(new_threshold)?;
         } else if new_threshold < 1 {
             return err!(MsError::InvalidThreshold);
@@ -184,8 +173,14 @@ pub mod squads_mpl {
     // instruction to change the threshold
     pub fn change_threshold(ctx: Context<MsAuth>, new_threshold: u16) -> Result<()> {
         // if the new threshold value is valid
-        if ctx.accounts.multisig.keys.len() < usize::from(new_threshold) {
-            let new_threshold: u16 = ctx.accounts.multisig.keys.len().try_into().unwrap();
+        if ctx.accounts.multisig.guardian_keys.len() < usize::from(new_threshold) {
+            let new_threshold: u16 = ctx
+                .accounts
+                .multisig
+                .guardian_keys
+                .len()
+                .try_into()
+                .unwrap();
             ctx.accounts.multisig.change_threshold(new_threshold)?;
         } else if new_threshold < 1 {
             return err!(MsError::InvalidThreshold);
@@ -328,7 +323,7 @@ pub mod squads_mpl {
         let cutoff = ctx
             .accounts
             .multisig
-            .keys
+            .guardian_keys
             .len()
             .checked_sub(usize::from(ctx.accounts.multisig.threshold))
             .unwrap();
@@ -386,7 +381,7 @@ pub mod squads_mpl {
         // if auth index < 1
         let ms_authority_seeds = [
             b"squad",
-            ctx.accounts.multisig.create_key.as_ref(),
+            ctx.accounts.multisig.owner_key.as_ref(),
             b"multisig",
             &[ctx.accounts.multisig.bump],
         ];
@@ -603,14 +598,14 @@ pub struct CreateTransaction<'info> {
             b"multisig"
         ],
         bump = multisig.bump,
-        constraint = multisig.is_member(creator.key()).is_some() @MsError::KeyNotInMultisig,
+        constraint = multisig.is_guardian(creator.key()).is_some() @MsError::KeyNotInMultisig,
     )]
     pub multisig: Account<'info, Ms>,
 
     #[account(
         init,
         payer = creator,
-        space = 8 + MsTransaction::initial_size_with_members(multisig.keys.len()),
+        space = 8 + MsTransaction::initial_size_with_members(multisig.guardian_keys.len()),
         seeds = [
             b"squad",
             multisig.key().as_ref(),
@@ -635,7 +630,7 @@ pub struct AddInstruction<'info> {
             b"multisig"
         ],
         bump = multisig.bump,
-        constraint = multisig.is_member(creator.key()).is_some() @MsError::KeyNotInMultisig,
+        constraint = multisig.is_guardian(creator.key()).is_some() @MsError::KeyNotInMultisig,
     )]
     pub multisig: Account<'info, Ms>,
 
@@ -681,7 +676,7 @@ pub struct ActivateTransaction<'info> {
             b"multisig"
         ],
         bump = multisig.bump,
-        constraint = multisig.is_member(creator.key()).is_some() @MsError::KeyNotInMultisig,
+        constraint = multisig.is_guardian(creator.key()).is_some() @MsError::KeyNotInMultisig,
     )]
     pub multisig: Account<'info, Ms>,
 
@@ -714,7 +709,7 @@ pub struct VoteTransaction<'info> {
             b"multisig"
         ],
         bump = multisig.bump,
-        constraint = multisig.is_member(member.key()).is_some() @MsError::KeyNotInMultisig,
+        constraint = multisig.is_guardian(member.key()).is_some() @MsError::KeyNotInMultisig,
     )]
     pub multisig: Account<'info, Ms>,
 
@@ -747,7 +742,7 @@ pub struct CancelTransaction<'info> {
             b"multisig"
         ],
         bump = multisig.bump,
-        constraint = multisig.is_member(member.key()).is_some() @MsError::KeyNotInMultisig,
+        constraint = multisig.is_guardian(member.key()).is_some() @MsError::KeyNotInMultisig,
     )]
     pub multisig: Account<'info, Ms>,
 
@@ -780,7 +775,7 @@ pub struct ExecuteTransaction<'info> {
         ],
         bump = multisig.bump,
         // only members can execute unless specified by the allow_external_execute setting
-        constraint = multisig.is_member(member.key()).is_some() || multisig.allow_external_execute @MsError::KeyNotInMultisig,
+        constraint = multisig.is_guardian(member.key()).is_some() || multisig.allow_external_execute @MsError::KeyNotInMultisig,
     )]
     pub multisig: Box<Account<'info, Ms>>,
 
@@ -814,7 +809,7 @@ pub struct ExecuteInstruction<'info> {
             b"multisig"
         ],
         bump = multisig.bump,
-        constraint = multisig.is_member(member.key()).is_some() || multisig.allow_external_execute @MsError::KeyNotInMultisig,
+        constraint = multisig.is_guardian(member.key()).is_some() || multisig.allow_external_execute @MsError::KeyNotInMultisig,
     )]
     pub multisig: Box<Account<'info, Ms>>,
 
